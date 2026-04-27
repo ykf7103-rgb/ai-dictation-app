@@ -11,8 +11,32 @@ const notoHK = Noto_Sans_HK({
 });
 
 export const metadata: Metadata = {
-  title: "AI 魔法默書助手",
-  description: "讓默書變得好玩又有趣！AI 自動為你生成趣味故事、記憶卡、廣東話朗讀。",
+  title: "AI 魔法默書助手 · 樂善堂梁黃蕙芳紀念學校",
+  description: "拍照默書範圍，AI 自動生成趣味故事、記憶卡、廣東話朗讀，學生可即場互動默書。",
+  applicationName: "AI 魔法默書助手",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "AI 魔法默書",
+    statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  openGraph: {
+    title: "AI 魔法默書助手",
+    description: "拍照默書範圍，AI 自動生成趣味故事、廣東話朗讀。",
+    locale: "zh_HK",
+    type: "website",
+  },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#a855f7",
 };
 
 export default function RootLayout({

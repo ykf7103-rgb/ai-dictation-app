@@ -1,0 +1,19 @@
+{
+  "name": "AI 魔法默書助手",
+  "short_name": "默書助手",
+  "description": "拍照默書範圍，AI 自動生成趣味故事、廣東話朗讀。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf5ff",
+  "theme_color": "#a855f7",
+  "lang": "zh-HK",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
