@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     const systemPrompt =
       "你係香港小學中文老師，專門幫家長從默書範圍圖片入面提取生字。你必須只回傳純 JSON，唔好包任何其他文字、解釋、或 markdown code block。";
 
-    const userText = `請睇呢張默書範圍嘅圖片（可能係課本、默書紙、或家長手寫），提取入面**所有中文生字／詞語**。
+    const userText = `請睇呢張默書範圍嘅圖片（可能係課本、默書紙、或家長手寫），提取入面嘅中文生字／詞語。
 
 【規則】
 - 只提取中文字／詞語（單字或多字詞都要）
@@ -39,6 +39,7 @@ export async function POST(req: Request) {
 - 如果同一個詞重覆出現，只列一次
 - 跟原文順序由上至下、左至右排列
 - 如果係手寫字，盡力辨認；唔肯定就跳過
+- ⚠️ **最多 10 個**：如果圖片入面有多過 10 個，淨係取最重要 / 最前嘅 10 個
 
 【只回傳呢個 JSON 格式】
 {
@@ -102,8 +103,11 @@ export async function POST(req: Request) {
       parsed = JSON.parse(m[0]);
     }
 
+    const MAX_WORDS = 10;
     const words = Array.isArray(parsed.words)
-      ? parsed.words.filter((w: unknown) => typeof w === "string" && w.trim().length > 0)
+      ? parsed.words
+          .filter((w: unknown) => typeof w === "string" && w.trim().length > 0)
+          .slice(0, MAX_WORDS) // hard cap server-side
       : [];
 
     return NextResponse.json({ words });

@@ -11,7 +11,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "請至少輸入一個生字" }, { status: 400 });
     }
 
-    const wordsList = words.filter((w: unknown) => typeof w === "string" && w.trim().length > 0);
+    const MAX_WORDS = 10;
+    const wordsList = words
+      .filter((w: unknown) => typeof w === "string" && w.trim().length > 0)
+      .slice(0, MAX_WORDS); // hard cap：每次最多 10 個
 
     const systemPrompt = `你係香港最受小學生歡迎嘅兒童故事作家，擅長將乏味嘅生字組合成令小朋友捧腹大笑、印象深刻嘅迷你故事。你嘅故事三大特色：
 1. 每個生字都係故事核心，不可生硬塞入

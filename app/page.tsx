@@ -7,6 +7,8 @@ import { Sparkles, Loader2, Camera, Image as ImageIcon } from "lucide-react";
 import { useApp } from "./context";
 import { GRADES, THEMES } from "@/lib/types";
 
+const MAX_WORDS = 10;
+
 function parseWords(text: string): string[] {
   return text
     .split(/[,，、；;\s\n]+/)
@@ -73,11 +75,14 @@ export default function Home() {
       if (detected.length === 0) {
         setError("未能從圖片辨認到生字，請手動輸入或重新拍攝");
       } else {
-        // Append to existing input rather than overwrite
+        // Append (de-duped) + cap to MAX_WORDS
         const existing = parseWords(input);
-        const merged = Array.from(new Set([...existing, ...detected]));
+        const merged = Array.from(new Set([...existing, ...detected])).slice(0, MAX_WORDS);
         setInput(merged.join("、"));
         setOcrSuccess(true);
+        if (existing.length + detected.length > MAX_WORDS) {
+          setError(`已自動取前 ${MAX_WORDS} 個生字（每次默書最多 ${MAX_WORDS} 個）`);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "辨認失敗");
@@ -90,6 +95,10 @@ export default function Home() {
   const handleGenerate = async () => {
     if (words.length < 1) {
       setError("請至少輸入 1 個生字");
+      return;
+    }
+    if (words.length > MAX_WORDS) {
+      setError(`最多 ${MAX_WORDS} 個生字，請刪除多餘嘅`);
       return;
     }
     setError("");
@@ -241,17 +250,37 @@ export default function Home() {
               setInput(e.target.value);
               setOcrSuccess(false);
             }}
-            placeholder="用逗號或空格分隔，例如：&#10;春天, 花朵, 蝴蝶, 蜜蜂, 池塘&#10;&#10;或者用上面個 📷 拍照識別 自動匯入！"
-            className="w-full p-3 md:p-4 text-lg border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none resize-none"
+            placeholder={`用逗號或空格分隔，最多 ${MAX_WORDS} 個生字，例如：\n春天, 花朵, 蝴蝶, 蜜蜂, 池塘\n\n或者用上面個 📷 拍照識別 自動匯入！`}
+            className={`w-full p-3 md:p-4 text-lg border-2 rounded-xl focus:outline-none resize-none transition-colors ${
+              words.length > MAX_WORDS
+                ? "border-rose-400 bg-rose-50 focus:border-rose-500"
+                : "border-gray-200 focus:border-purple-400"
+            }`}
             rows={5}
             disabled={loading}
           />
-          <div className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-            <span>
-              已輸入 <span className="font-bold text-purple-600">{words.length}</span> 個生字
-            </span>
-            {ocrSuccess && (
-              <span className="text-emerald-600 font-medium">✓ 拍照辨認成功</span>
+          <div className="mt-2 flex items-center justify-between gap-2 text-sm">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span
+                className={`font-bold ${
+                  words.length > MAX_WORDS
+                    ? "text-rose-600"
+                    : words.length === MAX_WORDS
+                    ? "text-amber-600"
+                    : "text-purple-600"
+                }`}
+              >
+                {words.length} / {MAX_WORDS}
+              </span>
+              <span className="text-gray-500">個生字</span>
+              {ocrSuccess && (
+                <span className="text-emerald-600 font-medium">✓ 拍照辨認成功</span>
+              )}
+            </div>
+            {words.length > MAX_WORDS && (
+              <span className="text-rose-600 text-xs font-medium">
+                超過 {MAX_WORDS} 個！請刪除 {words.length - MAX_WORDS} 個
+              </span>
             )}
           </div>
           {words.length > 0 && (
@@ -312,7 +341,7 @@ export default function Home() {
         {/* Generate Button */}
         <button
           onClick={handleGenerate}
-          disabled={loading || words.length < 1}
+          disabled={loading || words.length < 1 || words.length > MAX_WORDS}
           className="w-full py-5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xl font-bold rounded-2xl shadow-lg hover:shadow-xl active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {loading ? (
