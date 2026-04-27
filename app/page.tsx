@@ -96,7 +96,7 @@ export default function Home() {
     setLoading(true);
 
     try {
-      // 1. Generate story
+      // 1. 生成故事 + per-word image prompts
       setStage("story");
       const storyRes = await fetch("/api/generate-story", {
         method: "POST",
@@ -106,17 +106,10 @@ export default function Home() {
       const storyData = await storyRes.json();
       if (!storyRes.ok) throw new Error(storyData.error || "故事生成失敗");
 
-      // 2. Generate image (in parallel with state update)
-      setStage("image");
-      const imagePromise = fetch("/api/generate-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: storyData.imagePrompt }),
-      })
-        .then((r) => r.json())
-        .catch(() => ({ imageUrl: "" }));
+      const wordImagePrompts: { word: string; prompt: string }[] =
+        storyData.wordImagePrompts || [];
 
-      // Save partial state immediately so /learn can render text first
+      // 即刻儲故事，畀 /learn 可以先顯示文字
       setData({
         words,
         grade,
@@ -125,12 +118,55 @@ export default function Home() {
         mnemonics: storyData.mnemonics || [],
         imagePrompt: storyData.imagePrompt || "",
         imageUrl: "",
+        wordImages: wordImagePrompts.map((wp) => ({
+          word: wp.word,
+          prompt: wp.prompt,
+          imageUrl: undefined,
+        })),
       });
 
-      const imageData = await imagePromise;
-      setData((prev) => ({ ...prev, imageUrl: imageData.imageUrl || "" }));
+      // 2. 並行生成所有圖（1 張故事圖 Imagen-4-Ultra + N 張詞語圖 FLUX-schnell）
+      setStage("image");
 
+      const storyImagePromise = fetch("/api/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: storyData.imagePrompt,
+          model: "FLUX-pro", // 中間性價比：比 schnell 質素好，比 Imagen-4-Ultra 平 5 倍
+        }),
+      })
+        .then((r) => r.json())
+        .catch(() => ({ imageUrl: "" }));
+
+      const wordImagePromises = wordImagePrompts.map((wp) =>
+        fetch("/api/generate-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: wp.prompt, model: "FLUX-schnell" }),
+        })
+          .then((r) => r.json())
+          .then((d) => ({ word: wp.word, imageUrl: d.imageUrl || "" }))
+          .catch(() => ({ word: wp.word, imageUrl: "" }))
+      );
+
+      // 等故事圖（最重要先 navigate）
+      const storyImg = await storyImagePromise;
+      setData((prev) => ({ ...prev, imageUrl: storyImg.imageUrl || "" }));
+
+      // Navigate 到 /learn，詞語圖喺後台繼續落
       router.push("/learn");
+
+      // 詞語圖逐張 update（背景進行）
+      Promise.all(wordImagePromises).then((results) => {
+        setData((prev) => ({
+          ...prev,
+          wordImages: prev.wordImages.map((wi) => {
+            const found = results.find((r) => r.word === wi.word);
+            return found ? { ...wi, imageUrl: found.imageUrl } : wi;
+          }),
+        }));
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "錯誤");
     } finally {
@@ -313,11 +349,15 @@ export default function Home() {
                 : stage === "story"
                 ? "📖 AI 正在創作故事…"
                 : stage === "image"
-                ? "🎨 AI 正在繪畫插圖…"
+                ? "🎨 AI 正在繪畫故事插圖…"
                 : "施法中…"}
             </p>
             <p className="text-gray-500 text-sm">
-              {stage === "ocr" ? "通常需要 5-10 秒" : "總共需要約 10-15 秒，請耐心等候"}
+              {stage === "ocr"
+                ? "通常需要 5-10 秒"
+                : stage === "image"
+                ? "故事插圖約 10-15 秒，詞語小卡背景繼續生成"
+                : "總共需要約 15-25 秒，請耐心等候"}
             </p>
           </div>
         )}

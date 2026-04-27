@@ -9,6 +9,12 @@ export interface StoryPayload {
   imagePrompt: string;
 }
 
+export interface WordImage {
+  word: string;
+  prompt: string;
+  imageUrl?: string;
+}
+
 export interface AppData {
   words: string[];
   grade: string;
@@ -17,6 +23,7 @@ export interface AppData {
   mnemonics: Mnemonic[];
   imagePrompt: string;
   imageUrl: string;
+  wordImages: WordImage[];
 }
 
 export const GRADES = ["小一", "小二", "小三", "小四", "小五", "小六"] as const;

@@ -13,6 +13,7 @@ const defaultData: AppData = {
   mnemonics: [],
   imagePrompt: "",
   imageUrl: "",
+  wordImages: [],
 };
 
 interface Ctx {

@@ -228,13 +228,49 @@ export default function LearnPage() {
           </section>
         )}
 
-        {/* Continue */}
-        <button
-          onClick={() => router.push("/dictation")}
-          className="w-full py-5 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white text-xl font-bold rounded-2xl shadow-lg hover:shadow-xl active:scale-[0.98] transition flex items-center justify-center gap-2"
-        >
-          📝 開始默書測試！ <ArrowRight className="w-6 h-6" />
-        </button>
+        {/* Mode selector */}
+        <div className="bg-white rounded-2xl shadow-md p-5 mb-4">
+          <h3 className="text-lg font-bold text-purple-700 text-center mb-3">
+            ✨ 揀默書模式
+          </h3>
+          <div className="grid grid-cols-1 gap-3">
+            <button
+              onClick={() => router.push("/word-cards")}
+              disabled={data.wordImages.length === 0}
+              className="py-4 px-4 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-lg font-bold rounded-2xl shadow-md hover:shadow-lg active:scale-[0.98] transition flex items-center justify-between gap-2 disabled:opacity-50"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🎴</span>
+                <div className="text-left">
+                  <div>詞語卡片默書</div>
+                  <div className="text-xs font-normal opacity-90">
+                    一張卡一個詞語，聽聲默
+                    {data.wordImages.length > 0 && (
+                      <> · {data.wordImages.filter((w) => w.imageUrl).length}/{data.wordImages.length} 張圖已準備</>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <ArrowRight className="w-5 h-5" />
+            </button>
+
+            <button
+              onClick={() => router.push("/dictation")}
+              className="py-4 px-4 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white text-lg font-bold rounded-2xl shadow-md hover:shadow-lg active:scale-[0.98] transition flex items-center justify-between gap-2"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">📝</span>
+                <div className="text-left">
+                  <div>文章填空默書</div>
+                  <div className="text-xs font-normal opacity-90">
+                    喺故事入面填生字，聽句默
+                  </div>
+                </div>
+              </div>
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
 
         <div className="h-6" />
       </div>
