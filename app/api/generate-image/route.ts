@@ -3,10 +3,21 @@ import { callPoe, extractImageUrl } from "@/lib/poe";
 
 export const dynamic = "force-dynamic";
 
-// 支援嘅 model：
-// - FLUX-schnell: 平、快、適合單物（40 pts, 2s）
-// - Imagen-4-Ultra: 高質、慢、適合複雜場景（1400 pts, 12s）
-const ALLOWED_MODELS = ["FLUX-schnell", "Imagen-4-Ultra", "FLUX-pro", "Imagen-4"] as const;
+// 支援嘅 model（pts ≈ USD × 33,333）：
+// - FLUX-schnell:    40 pts, 2s  — 平靚正，適合單物
+// - FLUX-dev:       170 pts, 3s  — 比 schnell 好，慳 3 倍 vs Imagen
+// - Imagen-4-Fast:  470 pts, 5s  — Google 質素，性價比之王 ⭐
+// - FLUX-pro:      ~500 pts, 5s
+// - Imagen-4:       930 pts, 7s
+// - Imagen-4-Ultra: 1400 pts, 12s — 頂級
+const ALLOWED_MODELS = [
+  "FLUX-schnell",
+  "FLUX-dev",
+  "FLUX-pro",
+  "Imagen-4-Fast",
+  "Imagen-4",
+  "Imagen-4-Ultra",
+] as const;
 type AllowedModel = (typeof ALLOWED_MODELS)[number];
 
 export async function POST(req: Request) {

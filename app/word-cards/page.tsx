@@ -1,22 +1,19 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Volume2, Check, X, RotateCcw, Home, ChevronLeft, ChevronRight } from "lucide-react";
+import { Volume2, RotateCcw, Home, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useApp } from "../context";
 import { speakCantonese } from "@/lib/speech";
-
-type Status = "answering" | "correct" | "wrong";
 
 export default function WordCardsPage() {
   const router = useRouter();
   const { data } = useApp();
   const [idx, setIdx] = useState(0);
-  const [answer, setAnswer] = useState("");
-  const [status, setStatus] = useState<Status>("answering");
-  const [results, setResults] = useState<Record<number, boolean>>({});
+  const [revealed, setRevealed] = useState(false);
+  const [seen, setSeen] = useState<Set<number>>(new Set());
   const [showFinal, setShowFinal] = useState(false);
   const [imgError, setImgError] = useState(false);
 
@@ -28,21 +25,9 @@ export default function WordCardsPage() {
 
   const total = data.wordImages.length;
   const current = data.wordImages[idx];
-  const correctCount = useMemo(
-    () => Object.values(results).filter(Boolean).length,
-    [results]
-  );
-  const stars = total === 0
-    ? 0
-    : correctCount === total
-    ? 3
-    : correctCount / total >= 0.6
-    ? 2
-    : 1;
 
   useEffect(() => {
-    setAnswer("");
-    setStatus("answering");
+    setRevealed(false);
     setImgError(false);
   }, [idx]);
 
@@ -52,40 +37,33 @@ export default function WordCardsPage() {
     speakCantonese(current.word, 0.7);
   };
 
-  const handleCheck = () => {
-    if (!answer.trim()) return;
-    const correct = answer.trim() === current.word;
-    setStatus(correct ? "correct" : "wrong");
-    setResults((prev) => ({ ...prev, [idx]: correct }));
-
-    if (correct) {
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.55 },
-      });
-    }
+  const handleReveal = () => {
+    setRevealed(true);
+    setSeen((prev) => new Set(prev).add(idx));
+    confetti({
+      particleCount: 30,
+      spread: 50,
+      origin: { y: 0.55 },
+      colors: ["#a855f7", "#ec4899", "#fbbf24"],
+    });
   };
 
   const handleNext = () => {
     if (idx < total - 1) {
       setIdx(idx + 1);
     } else {
-      // Final card
-      const finalCorrect = Object.values({ ...results, [idx]: status === "correct" }).filter(Boolean).length;
-      if (finalCorrect === total) {
-        const fire = (particleRatio: number, opts: confetti.Options) =>
-          confetti({
-            ...opts,
-            origin: { y: 0.6 },
-            particleCount: Math.floor(200 * particleRatio),
-          });
-        fire(0.25, { spread: 26, startVelocity: 55 });
-        fire(0.2, { spread: 60 });
-        fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
-        fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
-        fire(0.1, { spread: 120, startVelocity: 45 });
-      }
+      // last card → final
+      const fire = (particleRatio: number, opts: confetti.Options) =>
+        confetti({
+          ...opts,
+          origin: { y: 0.6 },
+          particleCount: Math.floor(200 * particleRatio),
+        });
+      fire(0.25, { spread: 26, startVelocity: 55 });
+      fire(0.2, { spread: 60 });
+      fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+      fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+      fire(0.1, { spread: 120, startVelocity: 45 });
       setShowFinal(true);
     }
   };
@@ -94,12 +72,11 @@ export default function WordCardsPage() {
     if (idx > 0) setIdx(idx - 1);
   };
 
-  const handleRetry = () => {
+  const handleRestart = () => {
     setIdx(0);
-    setResults({});
+    setSeen(new Set());
+    setRevealed(false);
     setShowFinal(false);
-    setStatus("answering");
-    setAnswer("");
   };
 
   return (
@@ -113,7 +90,7 @@ export default function WordCardsPage() {
           >
             <Home className="w-4 h-4" /> 首頁
           </button>
-          <div className="font-bold text-purple-700">🎴 詞語卡片</div>
+          <div className="font-bold text-purple-700">🎴 詞語卡片默書</div>
           <button
             onClick={() => router.push("/learn")}
             className="text-gray-500 hover:text-purple-600"
@@ -125,8 +102,10 @@ export default function WordCardsPage() {
         {/* Progress */}
         <div className="bg-white rounded-2xl shadow-md p-4 mb-4">
           <div className="flex justify-between items-center mb-2 text-sm">
-            <span className="font-bold text-purple-700">第 {idx + 1} / {total} 張</span>
-            <span className="text-gray-500">已答對 {correctCount}</span>
+            <span className="font-bold text-purple-700">
+              第 {idx + 1} / {total} 張
+            </span>
+            <span className="text-gray-500">已睇 {seen.size} 個答案</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
             <motion.div
@@ -154,7 +133,7 @@ export default function WordCardsPage() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={current.imageUrl}
-                  alt={current.word}
+                  alt="詞語插圖"
                   className="w-full aspect-square object-contain block"
                   onError={() => setImgError(true)}
                 />
@@ -182,133 +161,102 @@ export default function WordCardsPage() {
               )}
             </div>
 
-            {/* Sound + Input */}
+            {/* Action area */}
             <div className="p-5">
-              {/* 聽聲按鈕 */}
+              {/* Listen button */}
               <button
                 onClick={handleSpeak}
-                className="w-full mb-4 py-4 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-white text-2xl font-bold rounded-2xl shadow-md active:scale-[0.98] transition flex items-center justify-center gap-3"
+                className="w-full mb-3 py-4 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-white text-2xl font-bold rounded-2xl shadow-md active:scale-[0.98] transition flex items-center justify-center gap-3"
               >
                 <Volume2 className="w-7 h-7" /> 聽呢個詞語
               </button>
 
-              {/* Answer input */}
-              <div className="mb-3">
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  ✏️ 寫低你聽到嘅詞語：
-                </label>
-                <input
-                  type="text"
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && status === "answering") handleCheck();
-                  }}
-                  disabled={status !== "answering"}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  placeholder="響度打字…"
-                  className={`w-full px-4 py-3 text-2xl text-center font-bold border-2 rounded-xl focus:outline-none transition ${
-                    status === "correct"
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                      : status === "wrong"
-                      ? "border-rose-500 bg-rose-50 text-rose-700"
-                      : "border-gray-300 focus:border-purple-400"
-                  }`}
-                />
-              </div>
-
-              {/* Feedback */}
-              {status === "correct" && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-center text-emerald-600 font-bold mb-3"
-                >
-                  <Check className="w-8 h-8 inline" /> 完全正確！
-                </motion.div>
-              )}
-              {status === "wrong" && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-center mb-3"
-                >
-                  <X className="w-8 h-8 inline text-rose-500" />
-                  <span className="text-rose-600 font-bold ml-1">錯啦</span>
-                  <div className="text-gray-700 mt-1">
-                    正確答案：
-                    <span className="font-black text-2xl text-purple-700 ml-2">
-                      {current.word}
-                    </span>
-                  </div>
-                </motion.div>
+              {/* Hint when not revealed */}
+              {!revealed && (
+                <div className="text-center mb-3 text-gray-600 text-sm">
+                  👂 聽幾次，喺紙上寫低你聽到嘅詞語
+                </div>
               )}
 
-              {/* Action */}
-              {status === "answering" ? (
+              {/* Reveal answer */}
+              {!revealed ? (
                 <button
-                  onClick={handleCheck}
-                  disabled={!answer.trim()}
-                  className="w-full py-4 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white text-lg font-bold rounded-2xl shadow-md active:scale-[0.98] transition disabled:opacity-50"
+                  onClick={handleReveal}
+                  className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-lg font-bold rounded-2xl shadow-md active:scale-[0.98] transition flex items-center justify-center gap-2"
                 >
-                  ✅ 核對答案
+                  <Eye className="w-5 h-5" /> 睇答案
                 </button>
               ) : (
-                <button
-                  onClick={handleNext}
-                  className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-lg font-bold rounded-2xl shadow-md active:scale-[0.98] transition flex items-center justify-center gap-2"
-                >
-                  {idx < total - 1 ? (
-                    <>
-                      下一張 <ChevronRight className="w-5 h-5" />
-                    </>
-                  ) : (
-                    <>🏁 完成默書</>
-                  )}
-                </button>
+                <>
+                  {/* Big answer reveal */}
+                  <motion.div
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", damping: 14 }}
+                    className="text-center py-6 mb-3 bg-gradient-to-br from-yellow-50 to-amber-50 border-4 border-amber-200 rounded-2xl"
+                  >
+                    <div className="text-sm text-amber-700 font-medium mb-1">
+                      正確答案
+                    </div>
+                    <div className="text-6xl md:text-7xl font-black text-purple-700 tracking-wide">
+                      {current.word}
+                    </div>
+                  </motion.div>
+
+                  <button
+                    onClick={handleNext}
+                    className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-lg font-bold rounded-2xl shadow-md active:scale-[0.98] transition flex items-center justify-center gap-2"
+                  >
+                    {idx < total - 1 ? (
+                      <>
+                        下一張 <ChevronRight className="w-5 h-5" />
+                      </>
+                    ) : (
+                      <>🏁 完成默書</>
+                    )}
+                  </button>
+                </>
               )}
             </div>
           </motion.div>
         </AnimatePresence>
 
         {/* Nav between cards */}
-        <div className="flex justify-between mb-4">
+        <div className="flex justify-between items-center mb-4">
           <button
             onClick={handlePrev}
             disabled={idx === 0}
-            className="flex items-center gap-1 px-4 py-2 bg-white rounded-xl shadow-sm disabled:opacity-30 text-purple-600 font-medium"
+            className="flex items-center gap-1 px-3 py-2 bg-white rounded-xl shadow-sm disabled:opacity-30 text-purple-600 font-medium text-sm"
           >
-            <ChevronLeft className="w-4 h-4" /> 上一張
+            <ChevronLeft className="w-4 h-4" /> 上
           </button>
-          <div className="flex gap-1 items-center">
+          <div className="flex gap-1 items-center flex-wrap justify-center">
             {data.wordImages.map((_, i) => (
-              <div
+              <button
                 key={i}
-                className={`w-2 h-2 rounded-full ${
+                onClick={() => setIdx(i)}
+                className={`h-2 rounded-full transition-all ${
                   i === idx
-                    ? "bg-purple-600 w-4"
-                    : results[i] === true
-                    ? "bg-emerald-400"
-                    : results[i] === false
-                    ? "bg-rose-400"
-                    : "bg-gray-300"
-                } transition-all`}
+                    ? "bg-purple-600 w-5"
+                    : seen.has(i)
+                    ? "bg-emerald-400 w-2"
+                    : "bg-gray-300 w-2"
+                }`}
+                title={`第 ${i + 1} 張`}
               />
             ))}
           </div>
           <button
             onClick={handleNext}
-            disabled={status === "answering"}
-            className="flex items-center gap-1 px-4 py-2 bg-white rounded-xl shadow-sm disabled:opacity-30 text-purple-600 font-medium"
+            disabled={!revealed && idx === total - 1}
+            className="flex items-center gap-1 px-3 py-2 bg-white rounded-xl shadow-sm disabled:opacity-30 text-purple-600 font-medium text-sm"
           >
-            下一張 <ChevronRight className="w-4 h-4" />
+            下 <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Final result modal */}
+      {/* Final modal */}
       <AnimatePresence>
         {showFinal && (
           <motion.div
@@ -332,25 +280,19 @@ export default function WordCardsPage() {
                 transition={{ delay: 0.2, type: "spring" }}
                 className="text-7xl mb-3"
               >
-                {stars === 3 ? "🎉" : stars === 2 ? "👍" : "💪"}
+                🎉
               </motion.div>
-              <div className="text-4xl font-black text-purple-700 mb-2">
-                {correctCount} / {total}
+              <div className="text-3xl font-black text-purple-700 mb-2">
+                完成晒 {total} 個詞語！
               </div>
-              <div className="text-4xl mb-4 tracking-wider">
-                {"⭐".repeat(stars)}
-                <span className="text-gray-300">{"☆".repeat(3 - stars)}</span>
-              </div>
-              <div className="text-gray-700 text-lg mb-6">
-                {stars === 3
-                  ? "全部答啱！你係詞語小專家！🌟"
-                  : stars === 2
-                  ? "好叻！繼續加油！"
-                  : "再嚟一次一定更好！"}
+              <div className="text-gray-600 text-base mb-6">
+                你已經學識晒今次嘅生字，
+                <br />
+                可以拎出黎再默幾次加深印象 💪
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={handleRetry}
+                  onClick={handleRestart}
                   className="py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-bold flex items-center justify-center gap-1 active:scale-95 transition"
                 >
                   <RotateCcw className="w-4 h-4" /> 再試

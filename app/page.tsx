@@ -133,7 +133,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: storyData.imagePrompt,
-          model: "FLUX-pro", // 中間性價比：比 schnell 質素好，比 Imagen-4-Ultra 平 5 倍
+          model: "Imagen-4-Fast", // 性價比之選：~467 pts/張，Google 質素，柔和兒童書風格
         }),
       })
         .then((r) => r.json())
