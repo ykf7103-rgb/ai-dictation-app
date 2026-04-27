@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { callPoe } from "@/lib/poe";
 
-export const runtime = "edge";
+// runtime defaults to nodejs (OpenNext Cloudflare uses nodejs_compat)
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {

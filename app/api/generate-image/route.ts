@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { callPoe, extractImageUrl } from "@/lib/poe";
 
-export const runtime = "edge";
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
