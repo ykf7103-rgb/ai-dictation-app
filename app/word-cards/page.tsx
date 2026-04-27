@@ -16,6 +16,7 @@ export default function WordCardsPage() {
   const [seen, setSeen] = useState<Set<number>>(new Set());
   const [showFinal, setShowFinal] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [retrySeed, setRetrySeed] = useState(0);
 
   useEffect(() => {
     if (typeof window !== "undefined" && (!data.story || data.wordImages.length === 0)) {
@@ -29,7 +30,19 @@ export default function WordCardsPage() {
   useEffect(() => {
     setRevealed(false);
     setImgError(false);
+    setRetrySeed(0);
   }, [idx]);
+
+  const retryImage = () => {
+    setImgError(false);
+    setRetrySeed((s) => s + 1);
+  };
+
+  // 如果係 Pollinations URL，retry 時加新 seed; 其他模型保持原 URL
+  const displayUrl =
+    current?.imageUrl && retrySeed > 0 && current.imageUrl.includes("pollinations.ai")
+      ? current.imageUrl.replace(/seed=\d+/, `seed=${Math.floor(Math.random() * 1_000_000)}`)
+      : current?.imageUrl;
 
   if (!current) return null;
 
@@ -129,10 +142,11 @@ export default function WordCardsPage() {
           >
             {/* Image */}
             <div className="bg-gradient-to-br from-purple-50 to-pink-50">
-              {current.imageUrl && !imgError ? (
+              {displayUrl && !imgError ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={current.imageUrl}
+                  key={`${idx}-${retrySeed}`}
+                  src={displayUrl}
                   alt="詞語插圖"
                   className="w-full aspect-square object-contain block"
                   onError={() => setImgError(true)}
@@ -142,7 +156,13 @@ export default function WordCardsPage() {
                   {imgError ? (
                     <>
                       <div className="text-5xl mb-2">🖼️</div>
-                      <p className="text-gray-500 text-sm">圖片暫時載入失敗</p>
+                      <p className="text-gray-500 text-sm mb-3">圖片載入失敗</p>
+                      <button
+                        onClick={retryImage}
+                        className="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-bold hover:bg-purple-600 active:scale-95"
+                      >
+                        🔄 重新載入
+                      </button>
                     </>
                   ) : (
                     <>
