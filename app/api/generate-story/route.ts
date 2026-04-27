@@ -68,6 +68,65 @@ ${wordsList.map((w: string) => `    { "word": "${w}", "prompt": "English descrip
   ]
 }`;
 
+    function extractJson(content: string): unknown {
+      // 1. Strip markdown code fences if present
+      let cleaned = content.trim();
+      const fence = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (fence) cleaned = fence[1].trim();
+
+      // 2. Try direct parse
+      try {
+        return JSON.parse(cleaned);
+      } catch {}
+
+      // 3. Find first { ... last balanced } in cleaned content
+      const firstBrace = cleaned.indexOf("{");
+      if (firstBrace === -1) {
+        throw new Error(`AI 回應冇 JSON object：${content.slice(0, 200)}`);
+      }
+      const lastBrace = cleaned.lastIndexOf("}");
+      if (lastBrace > firstBrace) {
+        try {
+          return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
+        } catch {}
+      }
+
+      // 4. Truncated JSON: try to close brackets/quotes greedily
+      let trimmed = cleaned.slice(firstBrace);
+      // Trim trailing partial token (last comma or open quote)
+      trimmed = trimmed.replace(/,\s*"[^"]*$/, ""); // 移除最後不完整字段
+      trimmed = trimmed.replace(/,\s*\{[^}]*$/, ""); // 移除最後不完整 object
+      let openBraces = 0;
+      let openBrackets = 0;
+      let inString = false;
+      let escape = false;
+      for (const ch of trimmed) {
+        if (escape) {
+          escape = false;
+          continue;
+        }
+        if (ch === "\\") {
+          escape = true;
+          continue;
+        }
+        if (ch === '"') inString = !inString;
+        if (inString) continue;
+        if (ch === "{") openBraces++;
+        else if (ch === "}") openBraces--;
+        else if (ch === "[") openBrackets++;
+        else if (ch === "]") openBrackets--;
+      }
+      let repaired = trimmed;
+      if (inString) repaired += '"';
+      while (openBrackets-- > 0) repaired += "]";
+      while (openBraces-- > 0) repaired += "}";
+      try {
+        return JSON.parse(repaired);
+      } catch {
+        throw new Error(`AI 回應 JSON 解析失敗（已嘗試修復）：${content.slice(0, 200)}`);
+      }
+    }
+
     async function generate(extraNote: string = "") {
       const finalUserPrompt = extraNote ? `${userPrompt}\n\n${extraNote}` : userPrompt;
       const data = await callPoe(
@@ -76,19 +135,18 @@ ${wordsList.map((w: string) => `    { "word": "${w}", "prompt": "English descrip
           { role: "system", content: systemPrompt },
           { role: "user", content: finalUserPrompt },
         ],
-        { temperature: 0.7, max_tokens: 2048 }
+        { temperature: 0.7, max_tokens: 4096 } // 4096 = 1024 thinking budget + ~3000 output
       );
       const content = data.choices?.[0]?.message?.content;
       if (!content) throw new Error("AI 沒有回應內容");
 
-      let parsed;
-      try {
-        parsed = JSON.parse(content);
-      } catch {
-        const m = content.match(/\{[\s\S]*\}/);
-        if (!m) throw new Error(`AI 回應格式不正確：${content.slice(0, 200)}`);
-        parsed = JSON.parse(m[0]);
-      }
+      const parsed = extractJson(content) as {
+        story?: unknown;
+        mnemonics?: unknown;
+        imagePrompt?: unknown;
+        wordImagePrompts?: unknown;
+      };
+
       if (!parsed.story || typeof parsed.story !== "string") {
         throw new Error("AI 沒有返回 story 欄位");
       }
