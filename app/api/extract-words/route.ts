@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
-export const runtime = "nodejs";
-export const maxDuration = 60;
+export const runtime = "edge";
 
 interface ImageContent {
   type: "image_url";

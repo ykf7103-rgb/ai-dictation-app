@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { callPoe, extractImageUrl } from "@/lib/poe";
 
-export const runtime = "nodejs";
-export const maxDuration = 60;
+export const runtime = "edge";
 
 export async function POST(req: Request) {
   try {
