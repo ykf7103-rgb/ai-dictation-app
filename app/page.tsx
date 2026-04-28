@@ -118,17 +118,7 @@ export default function Home() {
       const wordImagePrompts: { word: string; prompt: string }[] =
         storyData.wordImagePrompts || [];
 
-      // 詞語卡圖用免費 Pollinations.ai（直接 URL，唔需要 API call，0 點數）
-      const buildPollinationsUrl = (prompt: string, seed: number) =>
-        `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&model=flux&nologo=true&seed=${seed}`;
-
-      const wordImages = wordImagePrompts.map((wp, i) => ({
-        word: wp.word,
-        prompt: wp.prompt,
-        imageUrl: buildPollinationsUrl(wp.prompt, Math.floor(Math.random() * 1_000_000) + i),
-      }));
-
-      // 即刻儲故事 + 詞語卡 URL（已 ready）
+      // 即刻儲故事（詞語卡 URL 隨後背景生成）
       setData({
         words,
         grade,
@@ -137,12 +127,16 @@ export default function Home() {
         mnemonics: storyData.mnemonics || [],
         imagePrompt: storyData.imagePrompt || "",
         imageUrl: "",
-        wordImages,
+        wordImages: wordImagePrompts.map((wp) => ({
+          word: wp.word,
+          prompt: wp.prompt,
+          imageUrl: undefined,
+        })),
       });
 
-      // 故事插圖用 POE Imagen-4-Fast（高質）
+      // 故事插圖：POE Imagen-4-Fast（高質）
       setStage("image");
-      const storyImg = await fetch("/api/generate-image", {
+      const storyImagePromise = fetch("/api/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -153,8 +147,34 @@ export default function Home() {
         .then((r) => r.json())
         .catch(() => ({ imageUrl: "" }));
 
+      // 詞語卡圖：POE FLUX-schnell 並行生成（穩陣）
+      const wordImagePromises = wordImagePrompts.map(
+        (wp: { word: string; prompt: string }) =>
+          fetch("/api/generate-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt: wp.prompt, model: "FLUX-schnell" }),
+          })
+            .then((r) => r.json())
+            .then((d) => ({ word: wp.word, imageUrl: d.imageUrl || "" }))
+            .catch(() => ({ word: wp.word, imageUrl: "" }))
+      );
+
+      // 等故事圖出嚟先 navigate（最重要嘅圖優先）
+      const storyImg = await storyImagePromise;
       setData((prev) => ({ ...prev, imageUrl: storyImg.imageUrl || "" }));
       router.push("/learn");
+
+      // 詞語卡圖逐張 update（背景進行）
+      Promise.all(wordImagePromises).then((results) => {
+        setData((prev) => ({
+          ...prev,
+          wordImages: prev.wordImages.map((wi) => {
+            const found = results.find((r) => r.word === wi.word);
+            return found ? { ...wi, imageUrl: found.imageUrl } : wi;
+          }),
+        }));
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "錯誤");
     } finally {

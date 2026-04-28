@@ -1,82 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, RotateCcw, Home, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useApp } from "../context";
 import { speakCantonese } from "@/lib/speech";
-
-// 自動載圖 hook：先試 Pollinations，失敗或 8 秒超時就 fallback 去 POE FLUX-schnell
-function useImageWithFallback(initialUrl: string | undefined, prompt: string | undefined) {
-  const [src, setSrc] = useState<string | undefined>(initialUrl);
-  const [loading, setLoading] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const fallbackTriedRef = useRef(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    setSrc(initialUrl);
-    setFailed(false);
-    setLoading(false);
-    fallbackTriedRef.current = false;
-  }, [initialUrl]);
-
-  // 8 秒 timeout：未 onLoad 就觸發 fallback
-  useEffect(() => {
-    if (!src || fallbackTriedRef.current) return;
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      if (!fallbackTriedRef.current) triggerFallback();
-    }, 8000);
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src]);
-
-  const triggerFallback = async () => {
-    if (fallbackTriedRef.current || !prompt) return;
-    fallbackTriedRef.current = true;
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setLoading(true);
-    try {
-      const r = await fetch("/api/generate-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, model: "FLUX-schnell" }),
-      });
-      const data = await r.json();
-      if (data.imageUrl) {
-        setSrc(data.imageUrl);
-        setFailed(false);
-      } else {
-        setFailed(true);
-      }
-    } catch {
-      setFailed(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const onLoad = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-  };
-
-  const onError = () => {
-    triggerFallback();
-  };
-
-  const manualRetry = () => {
-    fallbackTriedRef.current = false;
-    setFailed(false);
-    triggerFallback();
-  };
-
-  return { src, loading, failed, onLoad, onError, manualRetry };
-}
 
 export default function WordCardsPage() {
   const router = useRouter();
@@ -85,6 +15,7 @@ export default function WordCardsPage() {
   const [revealed, setRevealed] = useState(false);
   const [seen, setSeen] = useState<Set<number>>(new Set());
   const [showFinal, setShowFinal] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined" && (!data.story || data.wordImages.length === 0)) {
@@ -94,10 +25,10 @@ export default function WordCardsPage() {
 
   const total = data.wordImages.length;
   const current = data.wordImages[idx];
-  const img = useImageWithFallback(current?.imageUrl, current?.prompt);
 
   useEffect(() => {
     setRevealed(false);
+    setImgError(false);
   }, [idx]);
 
   if (!current) return null;
@@ -196,30 +127,22 @@ export default function WordCardsPage() {
             transition={{ duration: 0.25 }}
             className="bg-white rounded-3xl shadow-xl overflow-hidden mb-4"
           >
-            {/* Image (with auto-fallback to POE FLUX-schnell) */}
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 relative">
-              {img.src && !img.failed ? (
+            {/* Image: POE FLUX-schnell（穩陣）*/}
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50">
+              {current.imageUrl && !imgError ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  key={img.src}
-                  src={img.src}
+                  src={current.imageUrl}
                   alt="詞語插圖"
                   className="w-full aspect-square object-contain block"
-                  onLoad={img.onLoad}
-                  onError={img.onError}
+                  onError={() => setImgError(true)}
                 />
               ) : (
                 <div className="w-full aspect-square flex flex-col items-center justify-center">
-                  {img.failed ? (
+                  {imgError ? (
                     <>
                       <div className="text-5xl mb-2">🖼️</div>
-                      <p className="text-gray-500 text-sm mb-3">圖片載入失敗</p>
-                      <button
-                        onClick={img.manualRetry}
-                        className="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-bold hover:bg-purple-600 active:scale-95"
-                      >
-                        🔄 重新載入
-                      </button>
+                      <p className="text-gray-500 text-sm">圖片暫時載入失敗</p>
                     </>
                   ) : (
                     <>
@@ -230,9 +153,7 @@ export default function WordCardsPage() {
                       >
                         🎨
                       </motion.div>
-                      <p className="text-purple-600">
-                        {img.loading ? "切換高清版本中…" : "圖片繪畫中…"}
-                      </p>
+                      <p className="text-purple-600">圖片繪畫中…</p>
                       <p className="text-gray-400 text-xs mt-1">幾秒後自動顯示</p>
                     </>
                   )}
