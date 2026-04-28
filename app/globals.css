@@ -11,29 +11,34 @@
   --font-sans: "Noto Sans HK", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-html, body {
-  background: var(--background);
+html {
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-/* 學校插畫背景（半透明 + 柔和漸變 overlay，唔遮卡片內容）
- * 用 ::before fixed positioned，唔會跟 scroll 移動
- * 配上原本嘅紫/粉/藍漸變色 overlay 保持品牌感
+/* 學校插畫背景 + 紫粉藍漸變 overlay 直接畫喺 body
+ * 用 fixed attachment 唔會跟 scroll，所有 page 都見到
  */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
+body {
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
   background-image:
-    linear-gradient(135deg, rgba(243, 232, 255, 0.78) 0%, rgba(252, 231, 243, 0.72) 50%, rgba(219, 234, 254, 0.78) 100%),
+    linear-gradient(135deg, rgba(243, 232, 255, 0.82) 0%, rgba(252, 231, 243, 0.76) 50%, rgba(219, 234, 254, 0.82) 100%),
     url("/school-bg.jpg");
   background-size: cover, cover;
   background-position: center, center;
   background-repeat: no-repeat, no-repeat;
-  z-index: -1;
-  pointer-events: none;
+  background-attachment: fixed, fixed;
+  background-color: var(--background);
+}
+
+/* iOS Safari 同 fixed attachment 唔太兼容，改 scroll */
+@supports (-webkit-touch-callout: none) {
+  body {
+    background-attachment: scroll, scroll;
+  }
 }
 
 /* iOS tap highlight removal */
