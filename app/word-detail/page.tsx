@@ -44,7 +44,7 @@ export default function WordDetailPage() {
   const currentImg = data.wordImages[idx];
   const currentExp = useMemo(
     () =>
-      data.wordExplanations.find((e) => e.word === currentImg?.word) || {
+      (data.wordExplanations ?? []).find((e) => e.word === currentImg?.word) || {
         word: currentImg?.word || "",
         partOfSpeech: "",
         explanation: "",

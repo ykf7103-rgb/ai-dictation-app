@@ -31,7 +31,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY);
-      if (raw) setDataState(JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Merge with defaults so older sessionStorage (missing new fields like
+        // wordExplanations) don't crash when accessing them
+        setDataState({ ...defaultData, ...parsed });
+      }
     } catch {}
     setHydrated(true);
   }, []);

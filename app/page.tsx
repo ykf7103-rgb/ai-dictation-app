@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Sparkles, Loader2, Camera, Image as ImageIcon, BookOpenText, Volume2 } from "lucide-react";
 import { useApp } from "./context";
 import { GRADES, THEMES } from "@/lib/types";
-import { SCHOOL_DICTATIONS } from "@/lib/school-dictations";
+import { SCHOOL_DICTATIONS, PREGEN_WORD_IMAGES } from "@/lib/school-dictations";
 import SchoolHeader from "@/components/SchoolHeader";
 
 const MAX_WORDS = 10;
@@ -156,7 +156,8 @@ export default function Home() {
       const wordImagePrompts: { word: string; prompt: string }[] =
         storyData.wordImagePrompts || [];
 
-      // 即刻儲故事（詞語卡 URL 隨後背景生成）
+      // 即刻儲故事 + 套用 pre-generated word card images（學校預設詞語）
+      // Pre-gen 嘅詞語直接 set imageUrl，唔需要 call API
       setData({
         words,
         grade,
@@ -168,7 +169,7 @@ export default function Home() {
         wordImages: wordImagePrompts.map((wp) => ({
           word: wp.word,
           prompt: wp.prompt,
-          imageUrl: undefined,
+          imageUrl: PREGEN_WORD_IMAGES[wp.word], // pre-gen path or undefined
         })),
         wordExplanations: storyData.wordExplanations || [],
       });
@@ -192,7 +193,7 @@ export default function Home() {
       router.push("/learn");
 
       // 詞語卡圖：每張獨立並行生成 + 內建 retry（最多 2 次重試）
-      // 每張圖完成立即更新 state（唔等 Promise.all），失敗一張唔影響其他
+      // 用 FLUX-pro（質素比 schnell 好~7×，但仍比 Imagen-4-Fast 平），更貼合詞語意思
       const generateWithRetry = async (
         prompt: string,
         maxRetries = 2
@@ -215,8 +216,10 @@ export default function Home() {
         return "";
       };
 
+      // 只為「冇 pre-gen」嘅詞語生成圖片（即家長拍照新增嘅詞語）
       wordImagePrompts.forEach(
         (wp: { word: string; prompt: string }) => {
+          if (PREGEN_WORD_IMAGES[wp.word]) return; // 已有 pre-gen，唔再 call API
           generateWithRetry(wp.prompt).then((imageUrl) => {
             if (!imageUrl) return;
             setData((prev) => ({

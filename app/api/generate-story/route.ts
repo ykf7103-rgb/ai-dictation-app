@@ -41,22 +41,28 @@ export async function POST(req: Request) {
 
 3. **imagePrompt**: 一句英文（≤25 字），描述故事場景，模板：\`watercolor children's book illustration of [scene], soft pastel, simple composition, no text\`
 
-4. **wordImagePrompts**: 為每個生字寫一句獨立英文 prompt。
-   ⚠️ **重要規則**：每個 prompt 必須**完全脫離上面個故事 context**，純粹圍繞該詞語本身嘅**意思／直接視覺**。
-   ❌ **唔可以**用故事入面嘅角色、場景、情節
-   ✅ 必須係該詞語自身意思嘅獨立直觀畫面
-   每句 ≤15 字。模板：\`watercolor cute [literal/visual meaning of word alone], single subject, white background, no text\`
+4. **wordImagePrompts**: 為每個生字寫一句**獨立、具體、有畫面感**嘅英文 prompt。
+   ⚠️ **三大規則**：
+   (A) 完全脫離上面個故事 context（唔可以用故事角色／場景）
+   (B) 圍繞該詞語本身嘅**核心意思**畫一個**清晰、可辨認**嘅場景或物件
+   (C) Prompt 要**具體、有細節**：包括主角形態、表情、動作、簡單背景元素
 
-   【正確示範】
-   - 「冷靜」→ "watercolor cute child taking deep breath with calm blue aura, no text"
-   - 「鄰近」→ "watercolor two small houses standing close together, no text"
-   - 「診所」→ "watercolor cute small clinic building with red cross sign, no text"
-   - 「勇敢」→ "watercolor cute child wearing tiny cape standing brave, no text"
-   - 「洩氣」→ "watercolor cute deflating balloon with droopy face, no text"
+   每句 20-40 字（比之前長啲，要清晰），模板：
+   \`watercolor children's book illustration of [SPECIFIC SCENE/OBJECT clearly showing the word's meaning], [character details if any], soft pastel colors, simple composition, white or pastel background, cute, no text, no words\`
 
-   【錯誤示範（唔好做！）】
-   - 「冷靜」→ ❌ "watercolor cute turtle sitting calmly"（用咗故事中嘅烏龜，唔係詞語本身意思）
-   - 「鄰近」→ ❌ "watercolor children near a school"（含住故事人物）
+   【優質示範】
+   - 「冷靜」→ "watercolor children's book illustration of a small child sitting cross-legged with eyes closed and a peaceful smile, blue calm aura around them, soft pastel, simple composition, white background, cute, no text"
+   - 「鄰近」→ "watercolor children's book illustration of two cozy small houses standing next to each other on a green hill, sharing a fence, soft pastel colors, simple composition, white background, cute, no text"
+   - 「診所」→ "watercolor children's book illustration of a tiny pastel clinic building with a big red cross sign on the door, small flowers in front, soft pastel, simple composition, white background, cute, no text"
+   - 「勇敢」→ "watercolor children's book illustration of a small child standing tall on a hilltop wearing a tiny red cape, fists on hips, big smile, sun behind, soft pastel, simple composition, white background, cute, no text"
+   - 「洩氣」→ "watercolor children's book illustration of a sad partially-deflated balloon slumping on the ground with droopy eyes and a frown, soft pastel, simple composition, white background, cute, no text"
+   - 「稱讚」→ "watercolor children's book illustration of a smiling teacher giving a gold star sticker to a happy student, both smiling, soft pastel, simple composition, white background, cute, no text"
+   - 「檢查」→ "watercolor children's book illustration of a friendly cartoon doctor holding a stethoscope and looking carefully at a checklist, soft pastel, simple composition, white background, cute, no text"
+
+   【嚴禁示範】
+   - ❌ "watercolor cute turtle"（太籠統，唔知係邊個詞）
+   - ❌ "watercolor children near school"（含故事元素）
+   - ❌ "magnifying glass on green leaf"（離開詞語意思太遠）
 
 5. **wordExplanations**: 為每個生字提供詞典式解釋（畀學生溫習用）：
    - **partOfSpeech**: 詞性（動詞 / 名詞 / 形容詞 / 副詞 / 連詞 / 量詞 / 嘆詞，等等）
