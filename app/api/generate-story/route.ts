@@ -58,6 +58,14 @@ export async function POST(req: Request) {
    - 「冷靜」→ ❌ "watercolor cute turtle sitting calmly"（用咗故事中嘅烏龜，唔係詞語本身意思）
    - 「鄰近」→ ❌ "watercolor children near a school"（含住故事人物）
 
+5. **wordExplanations**: 為每個生字提供詞典式解釋（畀學生溫習用）：
+   - **partOfSpeech**: 詞性（動詞 / 名詞 / 形容詞 / 副詞 / 連詞 / 量詞 / 嘆詞，等等）
+   - **explanation**: 詞義解釋 + 理據（為什麼咁解／字詞由邊度嚟），約 20-40 字書面語
+   - **example**: 一句書面語例句（≤20 字），example 句中**必須包含該生字**
+   範例：
+   - 「鄰近」→ partOfSpeech: "形容詞"，explanation: "形容位置上靠近、距離不遠。「鄰」即是鄰居，「近」即是距離小，合起來表示位置接近。"，example: "我家鄰近一所公園。"
+   - 「稱讚」→ partOfSpeech: "動詞"，explanation: "用言語表達讚賞或肯定。「稱」是說出，「讚」是讚美，合起來表示開口讚美對方。"，example: "老師稱讚他做得好。"
+
 【格式】
 {
   "story": "...",
@@ -65,6 +73,9 @@ export async function POST(req: Request) {
   "imagePrompt": "...",
   "wordImagePrompts": [
 ${wordsList.map((w: string) => `    {"word": "${w}", "prompt": "..."}`).join(",\n")}
+  ],
+  "wordExplanations": [
+${wordsList.map((w: string) => `    {"word": "${w}", "partOfSpeech": "...", "explanation": "...", "example": "..."}`).join(",\n")}
   ]
 }`;
 
@@ -145,6 +156,7 @@ ${wordsList.map((w: string) => `    {"word": "${w}", "prompt": "..."}`).join(",\
         mnemonics?: unknown;
         imagePrompt?: unknown;
         wordImagePrompts?: unknown;
+        wordExplanations?: unknown;
       };
 
       if (!parsed.story || typeof parsed.story !== "string") {
@@ -155,6 +167,7 @@ ${wordsList.map((w: string) => `    {"word": "${w}", "prompt": "..."}`).join(",\
         mnemonics?: unknown;
         imagePrompt?: string;
         wordImagePrompts?: unknown;
+        wordExplanations?: unknown;
       };
     }
 
@@ -188,10 +201,51 @@ ${wordsList.map((w: string) => `    {"word": "${w}", "prompt": "..."}`).join(",\
           `watercolor children's book illustration depicting "${w}", single subject, white background, cute, simple composition, soft pastel colors, no text, no words`,
       }));
     } else {
-      // 如果 AI 冇返 wordImagePrompts，用模板補齊
       wordImagePrompts = wordsList.map((w: string) => ({
         word: w,
         prompt: `watercolor children's book illustration depicting "${w}", single subject, white background, cute, simple composition, soft pastel colors, no text, no words`,
+      }));
+    }
+
+    // 對齊 wordExplanations
+    let wordExplanations: {
+      word: string;
+      partOfSpeech: string;
+      explanation: string;
+      example?: string;
+    }[] = [];
+    if (Array.isArray((parsed as { wordExplanations?: unknown }).wordExplanations)) {
+      const expMap = new Map<
+        string,
+        { partOfSpeech: string; explanation: string; example?: string }
+      >();
+      for (const item of (parsed as {
+        wordExplanations: Array<{
+          word?: string;
+          partOfSpeech?: string;
+          explanation?: string;
+          example?: string;
+        }>;
+      }).wordExplanations) {
+        if (item?.word) {
+          expMap.set(item.word, {
+            partOfSpeech: item.partOfSpeech || "",
+            explanation: item.explanation || "",
+            example: item.example,
+          });
+        }
+      }
+      wordExplanations = wordsList.map((w: string) => ({
+        word: w,
+        partOfSpeech: expMap.get(w)?.partOfSpeech || "",
+        explanation: expMap.get(w)?.explanation || "",
+        example: expMap.get(w)?.example,
+      }));
+    } else {
+      wordExplanations = wordsList.map((w: string) => ({
+        word: w,
+        partOfSpeech: "",
+        explanation: "",
       }));
     }
 
@@ -200,6 +254,7 @@ ${wordsList.map((w: string) => `    {"word": "${w}", "prompt": "..."}`).join(",\
       mnemonics: Array.isArray(parsed.mnemonics) ? parsed.mnemonics : [],
       imagePrompt: parsed.imagePrompt || "",
       wordImagePrompts,
+      wordExplanations,
       missingWords: missing,
     });
   } catch (err) {

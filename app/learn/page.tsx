@@ -101,6 +101,14 @@ export default function LearnPage() {
           </button>
         </div>
 
+        {/* 詞語解釋 quick access (top) */}
+        <button
+          onClick={() => router.push("/word-detail")}
+          className="w-full mb-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-bold rounded-2xl shadow-md active:scale-[0.98] transition flex items-center justify-center gap-2"
+        >
+          📖 睇每個詞語嘅解釋同例句
+        </button>
+
         {/* Image */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}

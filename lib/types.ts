@@ -15,6 +15,13 @@ export interface WordImage {
   imageUrl?: string;
 }
 
+export interface WordExplanation {
+  word: string;
+  partOfSpeech: string; // 動詞 / 名詞 / 形容詞 / 副詞 / 連詞 / etc
+  explanation: string; // 詞義 + 理據
+  example?: string;
+}
+
 export interface AppData {
   words: string[];
   grade: string;
@@ -24,6 +31,7 @@ export interface AppData {
   imagePrompt: string;
   imageUrl: string;
   wordImages: WordImage[];
+  wordExplanations: WordExplanation[];
 }
 
 export const GRADES = ["小一", "小二", "小三", "小四", "小五", "小六"] as const;

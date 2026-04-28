@@ -14,6 +14,7 @@ const defaultData: AppData = {
   imagePrompt: "",
   imageUrl: "",
   wordImages: [],
+  wordExplanations: [],
 };
 
 interface Ctx {

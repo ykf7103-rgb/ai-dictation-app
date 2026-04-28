@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, RotateCcw, Home, ChevronLeft, ChevronRight, Eye } from "lucide-react";
@@ -10,12 +10,13 @@ import { speakCantonese } from "@/lib/speech";
 
 export default function WordCardsPage() {
   const router = useRouter();
-  const { data } = useApp();
+  const { data, setData } = useApp();
   const [idx, setIdx] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [seen, setSeen] = useState<Set<number>>(new Set());
   const [showFinal, setShowFinal] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const onDemandRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (typeof window !== "undefined" && (!data.story || data.wordImages.length === 0)) {
@@ -30,6 +31,34 @@ export default function WordCardsPage() {
     setRevealed(false);
     setImgError(false);
   }, [idx]);
+
+  // 如果當前 card 仲未有 imageUrl，on-demand 即刻生成
+  useEffect(() => {
+    if (!current || current.imageUrl || onDemandRef.current.has(current.word)) return;
+    onDemandRef.current.add(current.word);
+    (async () => {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const r = await fetch("/api/generate-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt: current.prompt, model: "FLUX-schnell" }),
+          });
+          const d = await r.json();
+          if (d.imageUrl) {
+            setData((prev) => ({
+              ...prev,
+              wordImages: prev.wordImages.map((wi) =>
+                wi.word === current.word ? { ...wi, imageUrl: d.imageUrl } : wi
+              ),
+            }));
+            return;
+          }
+        } catch {}
+        await new Promise((res) => setTimeout(res, 1500 * (attempt + 1)));
+      }
+    })();
+  }, [current, setData]);
 
   if (!current) return null;
 
@@ -142,7 +171,23 @@ export default function WordCardsPage() {
                   {imgError ? (
                     <>
                       <div className="text-5xl mb-2">🖼️</div>
-                      <p className="text-gray-500 text-sm">圖片暫時載入失敗</p>
+                      <p className="text-gray-500 text-sm mb-3">圖片載入失敗</p>
+                      <button
+                        onClick={() => {
+                          setImgError(false);
+                          onDemandRef.current.delete(current.word);
+                          // 觸發 on-demand 再 generate
+                          setData((prev) => ({
+                            ...prev,
+                            wordImages: prev.wordImages.map((wi) =>
+                              wi.word === current.word ? { ...wi, imageUrl: undefined } : wi
+                            ),
+                          }));
+                        }}
+                        className="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-bold hover:bg-purple-600 active:scale-95"
+                      >
+                        🔄 重新生成
+                      </button>
                     </>
                   ) : (
                     <>
@@ -153,8 +198,8 @@ export default function WordCardsPage() {
                       >
                         🎨
                       </motion.div>
-                      <p className="text-purple-600">圖片繪畫中…</p>
-                      <p className="text-gray-400 text-xs mt-1">幾秒後自動顯示</p>
+                      <p className="text-purple-600">圖片生成中…</p>
+                      <p className="text-gray-400 text-xs mt-1">最多 10 秒，請稍等</p>
                     </>
                   )}
                 </div>

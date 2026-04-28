@@ -132,6 +132,7 @@ export default function Home() {
           prompt: wp.prompt,
           imageUrl: undefined,
         })),
+        wordExplanations: storyData.wordExplanations || [],
       });
 
       // 故事插圖：POE Imagen-4-Fast（高質）
@@ -147,34 +148,48 @@ export default function Home() {
         .then((r) => r.json())
         .catch(() => ({ imageUrl: "" }));
 
-      // 詞語卡圖：POE FLUX-schnell 並行生成（穩陣）
-      const wordImagePromises = wordImagePrompts.map(
-        (wp: { word: string; prompt: string }) =>
-          fetch("/api/generate-image", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt: wp.prompt, model: "FLUX-schnell" }),
-          })
-            .then((r) => r.json())
-            .then((d) => ({ word: wp.word, imageUrl: d.imageUrl || "" }))
-            .catch(() => ({ word: wp.word, imageUrl: "" }))
-      );
-
       // 等故事圖出嚟先 navigate（最重要嘅圖優先）
       const storyImg = await storyImagePromise;
       setData((prev) => ({ ...prev, imageUrl: storyImg.imageUrl || "" }));
       router.push("/learn");
 
-      // 詞語卡圖逐張 update（背景進行）
-      Promise.all(wordImagePromises).then((results) => {
-        setData((prev) => ({
-          ...prev,
-          wordImages: prev.wordImages.map((wi) => {
-            const found = results.find((r) => r.word === wi.word);
-            return found ? { ...wi, imageUrl: found.imageUrl } : wi;
-          }),
-        }));
-      });
+      // 詞語卡圖：每張獨立並行生成 + 內建 retry（最多 2 次重試）
+      // 每張圖完成立即更新 state（唔等 Promise.all），失敗一張唔影響其他
+      const generateWithRetry = async (
+        prompt: string,
+        maxRetries = 2
+      ): Promise<string> => {
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            const r = await fetch("/api/generate-image", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ prompt, model: "FLUX-schnell" }),
+            });
+            const d = await r.json();
+            if (d.imageUrl) return d.imageUrl;
+          } catch {}
+          // exponential backoff before retry
+          if (attempt < maxRetries) {
+            await new Promise((res) => setTimeout(res, 1000 * (attempt + 1)));
+          }
+        }
+        return "";
+      };
+
+      wordImagePrompts.forEach(
+        (wp: { word: string; prompt: string }) => {
+          generateWithRetry(wp.prompt).then((imageUrl) => {
+            if (!imageUrl) return;
+            setData((prev) => ({
+              ...prev,
+              wordImages: prev.wordImages.map((wi) =>
+                wi.word === wp.word ? { ...wi, imageUrl } : wi
+              ),
+            }));
+          });
+        }
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "錯誤");
     } finally {
