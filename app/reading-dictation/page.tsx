@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Volume2, VolumeX, Eye, EyeOff, RotateCcw, Home } from "lucide-react";
-import { speakCantonese, stopSpeech } from "@/lib/speech";
+import { speakCantoneseWithPunctuation, stopSpeech } from "@/lib/speech";
 import { SCHOOL_DICTATIONS, splitSentences } from "@/lib/school-dictations";
 import SchoolHeader from "@/components/SchoolHeader";
 
@@ -44,7 +44,7 @@ export default function ReadingDictationPage() {
       setSpeakingIdx(null);
       return;
     }
-    const u = speakCantonese(text, 0.65);
+    const u = speakCantoneseWithPunctuation(text, 0.65);
     if (u) {
       setSpeakingIdx(idx);
       u.onend = () => setSpeakingIdx(null);
@@ -68,7 +68,7 @@ export default function ReadingDictationPage() {
     stopSpeech();
     for (let i = 0; i < sentences.length; i++) {
       await new Promise<void>((resolve) => {
-        const u = speakCantonese(sentences[i], 0.65);
+        const u = speakCantoneseWithPunctuation(sentences[i], 0.65);
         setSpeakingIdx(i);
         if (u) {
           u.onend = () => resolve();
