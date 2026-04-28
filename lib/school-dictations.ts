@@ -143,10 +143,14 @@ export const SCHOOL_DICTATIONS: SchoolDictation[] = [
   },
 ];
 
-/** 將段落分句（用中文標點 。！？分句）*/
+/** 將段落分句（每個句末 / 句中標點都做斷句點，啱默書一句一句聽）
+ *  例：「聽見「撲通」一聲，其他小朋友都十分慌張，他們有的嚇得哭了起來，有的嚇得大喊救命，有的跑去找大人幫忙。」
+ *  → 5 段：1)「聽見「撲通」一聲，」 2)「其他小朋友都十分慌張，」
+ *         3)「他們有的嚇得哭了起來，」4)「有的嚇得大喊救命，」5)「有的跑去找大人幫忙。」
+ */
 export function splitSentences(text: string): string[] {
   return text
-    .split(/(?<=[。！？!?])/)
+    .split(/(?<=[。！？!?，,；;：:])/)
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
 }
