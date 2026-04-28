@@ -32,9 +32,31 @@ export async function POST(req: Request) {
 
 【要求】
 1. **story**: ${minLen}-${maxLen} 字。用晒所有生字（每個至少 1 次），生字之間要自然關聯。要有開始、發展、結尾。${theme || "動物"}主題（淡淡氣氛即可）。**自然、平實、清晰，唔需要刻意搞笑或誇張對白**。
+   ⚠️ **故事正文必須用「書面語／規範語」（即正式中文）**，唔可以用粵語口語：
+   - ❌ 唔好用：嘅、咗、佢、喺、嘢、冇、咁、啦、嗎、㗎、邊度、點樣、如果...就...
+   - ✅ 要用：的、了、他/她、在、東西、沒有、那麼、嗎/呢、哪裡、怎樣、如果...就...
+   範例：「他在學校鄰近的診所做檢查」（✅ 書面語）vs 「佢喺學校鄰近嘅診所做檢查」（❌ 粵語）
+
 2. **mnemonics**: 揀 2 個最難寫嘅字，提供拆字記憶法（部首+聲旁拆解）。
+
 3. **imagePrompt**: 一句英文（≤25 字），描述故事場景，模板：\`watercolor children's book illustration of [scene], soft pastel, simple composition, no text\`
-4. **wordImagePrompts**: 每個生字一句英文 (≤15 字)，模板：\`watercolor cute [subject], single subject, white background, no text\`
+
+4. **wordImagePrompts**: 為每個生字寫一句獨立英文 prompt。
+   ⚠️ **重要規則**：每個 prompt 必須**完全脫離上面個故事 context**，純粹圍繞該詞語本身嘅**意思／直接視覺**。
+   ❌ **唔可以**用故事入面嘅角色、場景、情節
+   ✅ 必須係該詞語自身意思嘅獨立直觀畫面
+   每句 ≤15 字。模板：\`watercolor cute [literal/visual meaning of word alone], single subject, white background, no text\`
+
+   【正確示範】
+   - 「冷靜」→ "watercolor cute child taking deep breath with calm blue aura, no text"
+   - 「鄰近」→ "watercolor two small houses standing close together, no text"
+   - 「診所」→ "watercolor cute small clinic building with red cross sign, no text"
+   - 「勇敢」→ "watercolor cute child wearing tiny cape standing brave, no text"
+   - 「洩氣」→ "watercolor cute deflating balloon with droopy face, no text"
+
+   【錯誤示範（唔好做！）】
+   - 「冷靜」→ ❌ "watercolor cute turtle sitting calmly"（用咗故事中嘅烏龜，唔係詞語本身意思）
+   - 「鄰近」→ ❌ "watercolor children near a school"（含住故事人物）
 
 【格式】
 {
@@ -108,12 +130,12 @@ ${wordsList.map((w: string) => `    {"word": "${w}", "prompt": "..."}`).join(",\
     async function generate(extraNote: string = "") {
       const finalUserPrompt = extraNote ? `${userPrompt}\n\n${extraNote}` : userPrompt;
       const data = await callPoe(
-        "Claude-Sonnet-4.6",
+        "Gemini-3-Flash", // 比 Sonnet-4.6 平 ~30×、自然出書面語、質素佳
         [
           { role: "system", content: systemPrompt },
           { role: "user", content: finalUserPrompt },
         ],
-        { temperature: 0.7, max_tokens: 4096 } // 4096 = 1024 thinking budget + ~3000 output
+        { temperature: 0.7, max_tokens: 2048 }
       );
       const content = data.choices?.[0]?.message?.content;
       if (!content) throw new Error("AI 沒有回應內容");
