@@ -18,28 +18,22 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* 學校插畫背景（半透明，唔遮卡片內容）
- * fixed background — 唔會跟 scroll 移動，更平靜
+/* 學校插畫背景（半透明 + 柔和漸變 overlay，唔遮卡片內容）
+ * 用 ::before fixed positioned，唔會跟 scroll 移動
+ * 配上原本嘅紫/粉/藍漸變色 overlay 保持品牌感
  */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background-image: url("/school-bg.jpg");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  opacity: 0.18; /* 半透明：18% 不影響 readability */
+  background-image:
+    linear-gradient(135deg, rgba(243, 232, 255, 0.78) 0%, rgba(252, 231, 243, 0.72) 50%, rgba(219, 234, 254, 0.78) 100%),
+    url("/school-bg.jpg");
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
   z-index: -1;
   pointer-events: none;
-}
-
-/* 避免 iOS Safari 同 fixed background 相容性問題 */
-@supports (-webkit-touch-callout: none) {
-  body::before {
-    background-attachment: scroll;
-  }
 }
 
 /* iOS tap highlight removal */

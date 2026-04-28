@@ -240,7 +240,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 px-4 py-6 md:py-10">
+    <div className="min-h-screen px-4 py-6 md:py-10">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <SchoolHeader hero />

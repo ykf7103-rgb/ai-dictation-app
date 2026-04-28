@@ -83,7 +83,7 @@ export default function ReadingDictationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-cyan-50 to-blue-50 px-4 py-6">
+    <div className="min-h-screen px-4 py-6">
       <div className="max-w-2xl mx-auto">
         <SchoolHeader />
 
