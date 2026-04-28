@@ -7,6 +7,7 @@ import { Volume2, RotateCcw, Home, ChevronLeft, ChevronRight, Eye } from "lucide
 import confetti from "canvas-confetti";
 import { useApp } from "../context";
 import { speakCantonese } from "@/lib/speech";
+import SchoolHeader from "@/components/SchoolHeader";
 
 export default function WordCardsPage() {
   const router = useRouter();
@@ -111,21 +112,19 @@ export default function WordCardsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 px-4 py-6">
       <div className="max-w-md mx-auto">
-        {/* Header */}
+        {/* School header */}
+        <SchoolHeader />
+
+        {/* Page nav */}
         <div className="flex items-center justify-between mb-4 text-sm">
           <button
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/learn")}
             className="text-gray-500 hover:text-purple-600 flex items-center gap-1"
           >
-            <Home className="w-4 h-4" /> 首頁
+            <Home className="w-4 h-4" /> 返回學習
           </button>
           <div className="font-bold text-purple-700">🎴 詞語卡片默書</div>
-          <button
-            onClick={() => router.push("/learn")}
-            className="text-gray-500 hover:text-purple-600"
-          >
-            ← 學習
-          </button>
+          <div className="w-16"></div>
         </div>
 
         {/* Progress */}

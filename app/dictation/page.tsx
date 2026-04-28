@@ -7,6 +7,7 @@ import { Check, X, RotateCcw, Home, Volume2 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useApp } from "../context";
 import { speakCantonese } from "@/lib/speech";
+import SchoolHeader from "@/components/SchoolHeader";
 
 interface Segment {
   type: "text" | "blank";
@@ -135,21 +136,19 @@ export default function DictationPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 px-4 py-6">
       <div className="max-w-2xl mx-auto">
-        {/* Header */}
+        {/* School header */}
+        <SchoolHeader />
+
+        {/* Page nav */}
         <div className="flex items-center justify-between mb-5 text-sm md:text-base">
           <button
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/learn")}
             className="text-gray-500 hover:text-purple-600 flex items-center gap-1"
           >
-            <Home className="w-4 h-4" /> 首頁
+            <Home className="w-4 h-4" /> 返回學習
           </button>
           <div className="font-bold text-purple-700">📝 默書測試</div>
-          <button
-            onClick={() => router.push("/learn")}
-            className="text-gray-500 hover:text-purple-600"
-          >
-            ← 學習
-          </button>
+          <div className="w-16"></div>
         </div>
 
         {/* Title card */}
@@ -233,10 +232,10 @@ export default function DictationPage() {
               <RotateCcw className="w-5 h-5" /> 再試一次
             </button>
             <button
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/learn")}
               className="py-4 bg-white hover:bg-gray-50 text-purple-600 border-2 border-purple-300 text-lg font-bold rounded-2xl shadow-md active:scale-[0.98] transition flex items-center justify-center gap-2"
             >
-              <Home className="w-5 h-5" /> 新默書
+              <Home className="w-5 h-5" /> 返學習
             </button>
           </div>
         )}

@@ -3,9 +3,10 @@
 import { useEffect, useState, useMemo, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Volume2, VolumeX, Pencil, Save, ArrowRight, Home } from "lucide-react";
+import { Volume2, VolumeX, Pencil, Save, ArrowRight } from "lucide-react";
 import { useApp } from "../context";
 import { speakCantonese, stopSpeech } from "@/lib/speech";
+import SchoolHeader from "@/components/SchoolHeader";
 
 export default function LearnPage() {
   const router = useRouter();
@@ -84,21 +85,12 @@ export default function LearnPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 px-4 py-6">
       <div className="max-w-2xl mx-auto">
+        {/* School header */}
+        <SchoolHeader />
+
         {/* Step indicator */}
-        <div className="flex items-center justify-between mb-5 text-sm md:text-base">
-          <button
-            onClick={() => router.push("/")}
-            className="text-gray-500 hover:text-purple-600 flex items-center gap-1"
-          >
-            <Home className="w-4 h-4" /> 首頁
-          </button>
+        <div className="flex items-center justify-center mb-5 text-sm md:text-base">
           <div className="font-bold text-purple-700">📖 學習模式</div>
-          <button
-            onClick={() => router.push("/dictation")}
-            className="text-gray-400 hover:text-purple-600"
-          >
-            默書 →
-          </button>
         </div>
 
         {/* 詞語解釋 quick access (top) */}

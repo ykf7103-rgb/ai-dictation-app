@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Sparkles, Loader2, Camera, Image as ImageIcon } from "lucide-react";
 import { useApp } from "./context";
 import { GRADES, THEMES } from "@/lib/types";
+import SchoolHeader from "@/components/SchoolHeader";
 
 const MAX_WORDS = 10;
 
@@ -202,14 +203,10 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 px-4 py-6 md:py-10">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <header className="text-center mb-6 md:mb-8">
-          <h1 className="text-3xl md:text-5xl font-black text-purple-700 mb-2">
-            🌟 AI 魔法默書助手
-          </h1>
-          <p className="text-base md:text-lg text-gray-600">
-            讓默書變得好玩又有趣！
-          </p>
-        </header>
+        <SchoolHeader hero />
+        <p className="text-center text-sm md:text-base text-gray-600 mb-6">
+          讓默書變得好玩又有趣！
+        </p>
 
         {/* Word Input */}
         <section className="bg-white rounded-2xl shadow-md p-5 md:p-6 mb-5">
