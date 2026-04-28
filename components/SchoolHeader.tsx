@@ -7,8 +7,20 @@ interface Props {
   hero?: boolean;
 }
 
+// 試 PNG 先（如果 user 上傳真校章），失敗就用 SVG fallback
+const CREST_SOURCES = ["/school-crest.png", "/school-crest.svg"];
+
 export default function SchoolHeader({ hero = false }: Props) {
-  const [imgError, setImgError] = useState(false);
+  const [srcIdx, setSrcIdx] = useState(0);
+  const [allFailed, setAllFailed] = useState(false);
+
+  const handleError = () => {
+    if (srcIdx < CREST_SOURCES.length - 1) {
+      setSrcIdx(srcIdx + 1);
+    } else {
+      setAllFailed(true);
+    }
+  };
 
   return (
     <header
@@ -16,15 +28,16 @@ export default function SchoolHeader({ hero = false }: Props) {
         hero ? "mb-2 md:mb-4 justify-center" : "mb-4 justify-center"
       }`}
     >
-      {/* Crest (graceful fallback to 🛡️ if /school-crest.png not present) */}
-      <div className={hero ? "shrink-0" : "shrink-0"}>
-        {!imgError ? (
+      {/* Crest: PNG → SVG → 🛡️ emoji fallback */}
+      <div className="shrink-0">
+        {!allFailed ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src="/school-crest.png"
+            key={CREST_SOURCES[srcIdx]}
+            src={CREST_SOURCES[srcIdx]}
             alt="樂善堂梁黃蕙芳紀念學校"
             className={hero ? "w-20 h-20 md:w-24 md:h-24" : "w-12 h-12"}
-            onError={() => setImgError(true)}
+            onError={handleError}
           />
         ) : (
           <div
