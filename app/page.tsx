@@ -3,9 +3,10 @@
 import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Sparkles, Loader2, Camera, Image as ImageIcon } from "lucide-react";
+import { Sparkles, Loader2, Camera, Image as ImageIcon, BookOpenText, Volume2 } from "lucide-react";
 import { useApp } from "./context";
 import { GRADES, THEMES } from "@/lib/types";
+import { SCHOOL_DICTATIONS } from "@/lib/school-dictations";
 import SchoolHeader from "@/components/SchoolHeader";
 
 const MAX_WORDS = 10;
@@ -43,11 +44,14 @@ async function fileToDataUrl(file: File, maxDim = 1600): Promise<string> {
   });
 }
 
+type Mode = "vocab" | "reading";
+
 export default function Home() {
   const router = useRouter();
   const { setData } = useApp();
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const [mode, setMode] = useState<Mode>("vocab");
   const [input, setInput] = useState("");
   const [grade, setGrade] = useState<string>("小三");
   const [theme, setTheme] = useState<string>("動物");
@@ -55,6 +59,39 @@ export default function Home() {
   const [stage, setStage] = useState<"" | "story" | "image" | "ocr">("");
   const [error, setError] = useState("");
   const [ocrSuccess, setOcrSuccess] = useState(false);
+  const [selectedDictId, setSelectedDictId] = useState<string>("");
+
+  // Reading dictation: just pick a passage and go
+  const handlePickReadingDictation = (dictId: string) => {
+    const d = SCHOOL_DICTATIONS.find((x) => x.id === dictId);
+    if (!d) return;
+    setData((prev) => ({
+      ...prev,
+      words: d.vocabulary,
+      grade: d.gradeLabel,
+      theme: "校園",
+      story: d.passage,
+      mnemonics: [],
+      imagePrompt: d.imagePrompt,
+      imageUrl: d.imageUrl || "",
+      wordImages: [],
+      wordExplanations: [],
+    }));
+    sessionStorage.setItem("reading-dict-id", d.id);
+    router.push("/reading-dictation");
+  };
+
+  // Vocab: apply pre-loaded word list from school dictations
+  const applySchoolVocab = (dictId: string) => {
+    const d = SCHOOL_DICTATIONS.find((x) => x.id === dictId);
+    if (!d) return;
+    setInput(d.vocabulary.join("、"));
+    // 同時更新年級
+    const map: Record<string, string> = { "P.2": "小二", "P.3": "小三", "P.4": "小四" };
+    if (map[d.grade]) setGrade(map[d.grade]);
+    setOcrSuccess(false);
+    setError("");
+  };
 
   const words = useMemo(() => parseWords(input), [input]);
 
@@ -204,9 +241,111 @@ export default function Home() {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <SchoolHeader hero />
-        <p className="text-center text-sm md:text-base text-gray-600 mb-6">
+        <p className="text-center text-sm md:text-base text-gray-600 mb-5">
           讓默書變得好玩又有趣！
         </p>
+
+        {/* Mode picker */}
+        <section className="bg-white rounded-2xl shadow-md p-4 mb-4">
+          <div className="text-sm font-bold text-gray-700 mb-3">📌 揀默書模式</div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setMode("vocab")}
+              disabled={loading}
+              className={`py-3 px-3 rounded-xl font-bold text-sm md:text-base transition active:scale-95 ${
+                mode === "vocab"
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <Sparkles className="w-4 h-4 inline mr-1" /> 詞語默書
+              <div className="text-xs font-normal opacity-90">AI 生成故事 + 圖卡</div>
+            </button>
+            <button
+              onClick={() => setMode("reading")}
+              disabled={loading}
+              className={`py-3 px-3 rounded-xl font-bold text-sm md:text-base transition active:scale-95 ${
+                mode === "reading"
+                  ? "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-md"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <Volume2 className="w-4 h-4 inline mr-1" /> 智能讀默/背默
+              <div className="text-xs font-normal opacity-90">逐句聽聲，隱藏文字</div>
+            </button>
+          </div>
+        </section>
+
+        {/* === MODE: Reading/Recitation === */}
+        {mode === "reading" && (
+          <section className="bg-white rounded-2xl shadow-md p-5 md:p-6 mb-5">
+            <h2 className="text-lg font-bold text-gray-800 mb-1">
+              🎧 智能讀默 / 背默
+            </h2>
+            <p className="text-sm text-gray-600 mb-4">
+              揀年級 + 默書範圍，學生可以逐句聽，唔顯示文字。完成後可以核對。
+            </p>
+            <div className="space-y-2">
+              {SCHOOL_DICTATIONS.map((d) => (
+                <button
+                  key={d.id}
+                  onClick={() => handlePickReadingDictation(d.id)}
+                  className="w-full text-left p-3 bg-gradient-to-r from-emerald-50 to-cyan-50 hover:from-emerald-100 hover:to-cyan-100 border-2 border-emerald-200 rounded-xl transition active:scale-[0.99]"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="font-bold text-emerald-800 flex items-center gap-2">
+                        <span className="px-2 py-0.5 bg-emerald-600 text-white rounded text-xs">
+                          {d.gradeLabel}
+                        </span>
+                        <span className="text-xs px-2 py-0.5 bg-cyan-200 text-cyan-800 rounded">
+                          {d.passageType}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-700 mt-1">{d.label}</div>
+                      <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                        {d.passage.slice(0, 30)}…
+                      </div>
+                    </div>
+                    <BookOpenText className="w-5 h-5 text-emerald-600 shrink-0" />
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="text-xs text-gray-400 mt-3 text-center">
+              P.5、P.6 範圍只有大綱，暫未支援讀默/背默；如需要請手動加。
+            </div>
+          </section>
+        )}
+
+        {/* === MODE: Vocabulary === Below sections only show in vocab mode === */}
+        {mode !== "vocab" ? null : (
+        <>
+        {/* School preset vocab */}
+        <section className="bg-white rounded-2xl shadow-md p-4 mb-4">
+          <div className="text-sm font-bold text-gray-700 mb-2">
+            📚 從學校默書範圍揀（自動填入詞語）
+          </div>
+          <select
+            value={selectedDictId}
+            onChange={(e) => {
+              setSelectedDictId(e.target.value);
+              if (e.target.value) applySchoolVocab(e.target.value);
+            }}
+            disabled={loading}
+            className="w-full p-3 border-2 border-gray-200 rounded-xl text-base focus:border-purple-400 focus:outline-none bg-white"
+          >
+            <option value="">— 揀默書範圍 —</option>
+            {SCHOOL_DICTATIONS.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.gradeLabel} · {d.label}
+              </option>
+            ))}
+          </select>
+          <div className="text-xs text-gray-400 mt-1">
+            P.2-P.4 嘅默書範圍。揀完會自動填入下面，可以再修改。
+          </div>
+        </section>
 
         {/* Word Input */}
         <section className="bg-white rounded-2xl shadow-md p-5 md:p-6 mb-5">
@@ -401,9 +540,11 @@ export default function Home() {
             </p>
           </div>
         )}
+        </>
+        )}
 
         <footer className="text-center text-gray-400 text-xs mt-10 mb-4">
-          Powered by Claude Sonnet 4.6 + FLUX · 廣東話朗讀
+          Powered by AI · 廣東話朗讀
         </footer>
       </div>
     </div>
